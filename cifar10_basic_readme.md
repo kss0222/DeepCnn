@@ -5,7 +5,7 @@
   >> sudo apt install git
   
 (2) github저장소를 clone  
-  >> git clone https://github.com/tensorflow/tensorflow
+  >> git clone https://github.com/tensorflow/models
   
 (3) cifar10 예제를 찾는다.
   >>  cd models/tutorials/image/cifar10 
