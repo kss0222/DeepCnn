@@ -9,7 +9,7 @@
   
   >> git clone https://github.com/tensorflow/models
   
-(3) cifar10 예제를 찾는다.
+(3) cifar10 예제를 찾아 실행(학습시킴)
   >>  cd models/tutorials/image/cifar10 
   
   >>  python cifar10.py
