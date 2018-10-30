@@ -9,10 +9,10 @@
   
   >> git clone https://github.com/tensorflow/models
   
-(3) cifar10 예제를 찾아 실행(학습시킴)
+(3) cifar10 실행(CIFAR10 데이터 셋을 다운로드받고 학습시킴)
   >>  cd models/tutorials/image/cifar10 
   
-  >>  python cifar10.py
+  >>  python cifar10.py  
   
   >>  python cifar10_train.py
   
