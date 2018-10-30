@@ -4,10 +4,8 @@
 
 (1) ubuntu에 git 설치  
   >> sudo apt install git
-
 (2) github저장소를 clone  
   >> git clone https://github.com/tensorflow/tensorflow
-
 (3) cifar10 예제를 찾는다.
   >> (위치이동) cd models/tutorials/image/cifar10 
   >> (예제실행) python cifar10.py
