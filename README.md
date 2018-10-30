@@ -10,5 +10,5 @@ http://www.cs.toronto.edu/~kriz/cifar.html
 https://www.tensorflow.org/tutorials/images/deep_cnn
 
 # cifar10_basic_readme.md 
--> 이 분류모델을 훈련시키고 실행하는 방법이 들어있습니다.
+-> CIFAR-10 분류모델을 훈련시키고 실행하는 방법이 들어있습니다.
 
