@@ -8,9 +8,9 @@
   >> git clone https://github.com/tensorflow/tensorflow
   
 (3) cifar10 예제를 찾는다.
-  >> (위치이동) cd models/tutorials/image/cifar10 
-  >> (예제실행) python cifar10.py
-  >> (예제실행) python cifar10_train.py
+  >>  cd models/tutorials/image/cifar10 
+  >>  python cifar10.py
+  >>  python cifar10_train.py
  -> Default 값: 100만 Step python 코드 안에서 학습 횟수를 줄이던지 
     모델과 tensorboard 실행만 보려면 Ctrl+C키로 중단
     
