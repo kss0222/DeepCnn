@@ -1,17 +1,3 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
 
 """Builds the CIFAR-10 network.
 
@@ -31,24 +17,25 @@ Summary of available functions:
  train_op = train(loss, global_step)
 """
 # pylint: disable=missing-docstring
+# _future_ : python 2와 3의 호환성을 위해 사용
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import re
-import sys
-import tarfile
-
-from six.moves import urllib
+import os # OS의 자원을 사용가능하게 해주는 모듈
+import re # 정규 표현식 사용하게 해주는 모듈
+import sys # python interpreter에 의해 관리되는 변수나 함수에 접근
+import tarfile # tar 압축을 핸들링
+# six 모듈은 python2와 3 함수를 함께 사용하게 해줌.
+from six.moves import urllib #urllib는 URL 관련 모듈, Dataset 원격으로 다운로드할 때 사용
 import tensorflow as tf
 
 import cifar10_input
 
-FLAGS = tf.app.flags.FLAGS
+FLAGS = tf.app.flags.FLAGS #상수 값 관리
 
 # Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 128,
+tf.app.flags.DEFINE_integer('batch_size', 128, #FLAGS.batch_size=128
                             """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_string('data_dir', '/tmp/cifar10_data',
                            """Path to the CIFAR-10 data directory.""")
@@ -56,27 +43,29 @@ tf.app.flags.DEFINE_boolean('use_fp16', False,
                             """Train the model using fp16.""")
 
 # Global constants describing the CIFAR-10 data set.
-IMAGE_SIZE = cifar10_input.IMAGE_SIZE
-NUM_CLASSES = cifar10_input.NUM_CLASSES
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+IMAGE_SIZE = cifar10_input.IMAGE_SIZE      #24
+NUM_CLASSES = cifar10_input.NUM_CLASSES    #10
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN #50000
+NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL   #10000
 
 
-# Constants describing the training process.
-MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
-NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
-LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
+# Constants describing the training process. 
+# 이동 평균(Moving Average) : 특정 기간동안 측정된 값의 평균.
+MOVING_AVERAGE_DECAY = 0.9999     # tf.train.ExponentialMovingAverage에서 사용할 가중치 값
+
+NUM_EPOCHS_PER_DECAY = 350.0      # Learning rate 감소 후 epoch 수
+LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate 감소를 위한 변수
 INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
 # names of the summaries when visualizing a model.
-TOWER_NAME = 'tower'
-
+TOWER_NAME = 'tower' # 멀티 GPU 사용시 작업 이름 구분자
+# CIFAR_10의 데이터 경로
 DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 
 
-def _activation_summary(x):
+def _activation_summary(x): # 각 layer들을 tensorboard에 시각화 하기 위해 summary만듬
   """Helper to create summaries for activations.
 
   Creates a summary that provides a histogram of activations.
