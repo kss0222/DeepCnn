@@ -21,7 +21,7 @@
     
 (4) 학습 모델 평가
   >> python cifar10_eval.py 
-  -> 정확도는 86%정도 
+  -> CIFAR10 데이터 셋 중 10,000를 선택, 예측 정확도를 비교. 정확도는 86%정도 
 
 (5) Tensorboard 확인
   >> tensorboard --logdir=/tmp/cifar10_train 학습된 파일이 저장된 장소
