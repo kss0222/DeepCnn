@@ -23,5 +23,6 @@
 
 (5) Tensorboard 확인
   >> tensorboard --logdir=/tmp/cifar10_train 학습된 파일이 저장된 장소
+  
     https://localhost:6006으로 확인 (또는 자신이 이용하는 서버 주소와 포트)
 
