@@ -64,8 +64,8 @@ TOWER_NAME = 'tower' # 멀티 GPU 사용시 작업 이름 구분자
 # CIFAR_10의 데이터 경로
 DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 
-
-def _activation_summary(x): # 각 layer들을 tensorboard에 시각화 하기 위해 summary만듬
+# 각 layer들을 tensorboard에 시각화 하기 위해 summary만듬
+def _activation_summary(x): 
   """Helper to create summaries for activations.
 
   Creates a summary that provides a histogram of activations.
@@ -83,7 +83,7 @@ def _activation_summary(x): # 각 layer들을 tensorboard에 시각화 하기 �
   tf.summary.scalar(tensor_name + '/sparsity',
                                        tf.nn.zero_fraction(x))
 
-
+# 파라미터로 전달받은 값을 이용하여 CPU를 이용하여 처리할 변수 생성
 def _variable_on_cpu(name, shape, initializer):
   """Helper to create a Variable stored on CPU memory.
 
@@ -95,12 +95,13 @@ def _variable_on_cpu(name, shape, initializer):
   Returns:
     Variable Tensor
   """
+  # 첫번째 CPU를 사용하겠다고 지정
   with tf.device('/cpu:0'):
-    dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
-    var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype)
-  return var
+    dtype = tf.float16 if FLAGS.use_fp16 else tf.float32 # python의 3항 연산 FLAGS.use_fp16이 true면 tf.float16 사용하고 false면 tf.float32사용
+    var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype) # tf.get_Variable는 4개의 파라미터 가진 새로운 변수 생성
+    return var
 
-
+#  정규화 처리를 할 변수 생성.
 def _variable_with_weight_decay(name, shape, stddev, wd):
   """Helper to create an initialized Variable with weight decay.
 
@@ -121,12 +122,16 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   var = _variable_on_cpu(
       name,
       shape,
-      tf.truncated_normal_initializer(stddev=stddev, dtype=dtype))
-  if wd is not None:
-    weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
+      tf.truncated_normal_initializer(stddev=stddev, dtype=dtype)) #정규분포 기반의 초기화 함수를 리턴, 표준편차의 양 끝단을 잘라낸 값으로 새로운 정규분포.
+
+  # L2 정규화 처리를 위한 코드. 
+  # wd(Weight Decay)값이 None이 아닌 경우 정규화 처리를 하고 그래프에 추가. 
+    if wd is not None:
+    weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')# tf.nn.l2_loss는 전달받은 텐서의 요소들의 제곱의 합을 2로 나누어 리턴.
     tf.add_to_collection('losses', weight_decay)
   return var
 
+# cifar10_input.py에 있는 함수를 이용하여 학습할 데이터를 불러온다
 
 def distorted_inputs():
   """Construct distorted input for CIFAR training using the Reader ops.
@@ -138,6 +143,7 @@ def distorted_inputs():
   Raises:
     ValueError: If no data_dir
   """
+  # 데이터 경로가 지정되어있지 않으면 에러 표시
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
   data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
