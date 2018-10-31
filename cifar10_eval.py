@@ -1,6 +1,7 @@
+# 학습한 모델의 성능 평가 
 def evaluate():
    with tf.Graph().as_default() as g:
-     images, labels = cifar10.inputs(eval_data=eval_data)  # 검증용 CIFAR10 데이터셋 읽기
+     images, labels = cifar10.inputs(eval_data=eval_data)  # 검증용 CIFAR10 데이터셋 읽기. 10000개
 
     logits = cifar10.inference(images)               # 예측 모델 그래프 정의
     top_k_op = tf.nn.in_top_k(logits, labels, 1)    # 예측
@@ -28,7 +29,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
          step += 1
 
       # Compute precision @ 1.
-      precision = true_count / total_sample_count
+      precision = true_count / total_sample_count # 전체 샘플 중에 맞은 
       print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))
 
       summary = tf.Summary()
