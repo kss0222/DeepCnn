@@ -1,3 +1,4 @@
+#학습하기 전에 파라미터 확인 테스트
 # Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
