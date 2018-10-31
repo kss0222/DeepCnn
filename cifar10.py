@@ -146,6 +146,8 @@ def distorted_inputs():
   # 데이터 경로가 지정되어있지 않으면 에러 표시
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
+    
+  # 데이터 경로를 조합하여 최종적으로 사용할 이미지와 라벨을 가져옴
   data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
   images, labels = cifar10_input.distorted_inputs(data_dir=data_dir,
                                                   batch_size=FLAGS.batch_size)
@@ -155,6 +157,7 @@ def distorted_inputs():
   return images, labels
 
 
+# eval_data라는 파라미터가 추가된 것 외에는 distorted_inputs 함수와 내용 동일
 def inputs(eval_data):
   """Construct input for CIFAR evaluation using the Reader ops.
 
@@ -168,17 +171,22 @@ def inputs(eval_data):
   Raises:
     ValueError: If no data_dir
   """
+ 
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
-  data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
+  data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin') # 데이터 경로를 조합하여 최종적으로 사용할 이미지와 라벨을 가져옴
   images, labels = cifar10_input.inputs(eval_data=eval_data,
                                         data_dir=data_dir,
                                         batch_size=FLAGS.batch_size)
+  
+# FLAGS.use_fp16 값이 true이면 이미지와 라벨 텐서의 요소들을 tf.float16 타입으로 형변환. 코드에는 False로 지정되어있으므로 무시.
+
   if FLAGS.use_fp16:
     images = tf.cast(images, tf.float16)
     labels = tf.cast(labels, tf.float16)
   return images, labels
 
+# 이 소스의 가장 중요한 핵심 부분. 예측(추론)을 위한 모델을 구성하는 함수
 
 def inference(images):
   """Build the CIFAR-10 model.
@@ -193,24 +201,30 @@ def inference(images):
   # tf.Variable() in order to share variables across multiple GPU training runs.
   # If we only ran this model on a single GPU, we could simplify this function
   # by replacing all instances of tf.get_variable() with tf.Variable().
-  #
+  
   # conv1
+  # 여기서 커널(필터)는 이미지에서 지정된 영역의 특징만을 ‘걸러내는’ 역할
+  # xW + b의 함수를 사용해서 처리. 일단 bias는 무시, xW만 생각해본다면 입력받은 이미지에서 필터와 겹치는 부분을 x라 보고 해당 위치의 필터를 W라 
+  # 보면 x1* W1 + x2 * W2 + … + xn * Wn이 되는 것이다. 3 X 3 필터의 경우, x1 * W1 + x2 * W2 + x3 * W3 + ... x9 * W9로 계산
   with tf.variable_scope('conv1') as scope:
     kernel = _variable_with_weight_decay('weights',
-                                         shape=[5, 5, 3, 64],
+                                         shape=[5, 5, 3, 64], # 커널(필터) 초기화 : 5 X 5 크기의 3채널 필터를 만들며 64개의 커널 사용.
                                          stddev=5e-2,
                                          wd=None)
     conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
+    # 바이어스 초기화, 채널의 개수가 64개이므로 bias도 64개 설정. biases는 64개의 요소가 0.0으로 채워진 # vector
     biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
+    # 가중치 + 바이어스. biases는 conv의 마지막 차수와 일치하는 1차원 값
     pre_activation = tf.nn.bias_add(conv, biases)
-    conv1 = tf.nn.relu(pre_activation, name=scope.name)
-    _activation_summary(conv1)
+    conv1 = tf.nn.relu(pre_activation, name=scope.name) # 활성화 함수 relu 추가
+    _activation_summary(conv1) # tensorboard에서 확인
 
   # pool1
-  pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
+  #pooling은 이미지를 축소하는 단계.필터로 주어진 영역 내에서 특정한 값(평균,최대,최소)을 뽑아낸다. 성능이 좋은 max pooling(최대값 뽑아냄)을 주로 사용.
+  pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], # 필터 크기 3x3, stride는 2
                          padding='SAME', name='pool1')
   # norm1
-  norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+  norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, #local response normalization라는 정규화 처리. ReLu 사용시 에러율 개선에 사용.
                     name='norm1')
 
   # conv2
@@ -233,6 +247,7 @@ def inference(images):
                          strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
   # local3
+  # fully connected layer 
   with tf.variable_scope('local3') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
     reshape = tf.reshape(pool2, [images.get_shape().as_list()[0], -1])
@@ -244,6 +259,7 @@ def inference(images):
     _activation_summary(local3)
 
   # local4
+  # fully connected layer 2
   with tf.variable_scope('local4') as scope:
     weights = _variable_with_weight_decay('weights', shape=[384, 192],
                                           stddev=0.04, wd=0.004)
@@ -255,6 +271,8 @@ def inference(images):
   # We don't apply softmax here because
   # tf.nn.sparse_softmax_cross_entropy_with_logits accepts the unscaled logits
   # and performs the softmax internally for efficiency.
+  
+  # softmax layer
   with tf.variable_scope('softmax_linear') as scope:
     weights = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
                                           stddev=1/192.0, wd=None)
@@ -265,20 +283,25 @@ def inference(images):
 
   return softmax_linear
 
+# 손실 값 계산을 위한 함수 cross entropy를 이용하여 loss를 구한다.
 
 def loss(logits, labels):
   """Add L2Loss to all the trainable variables.
 
   Add summary for "Loss" and "Loss/avg".
   Args:
-    logits: Logits from inference().
-    labels: Labels from distorted_inputs or inputs(). 1-D tensor
+    logits: Logits from inference().  # inference() 함수의 리턴 값
+    labels: Labels from distorted_inputs or inputs(). 1-D tensor # distorted_input()함수의 리턴 값
             of shape [batch_size]
 
   Returns:
     Loss tensor of type float.
   """
-  # Calculate the average cross entropy loss across the batch.
+ # Calculate the average cross entropy loss across the batch.
+ # 여기서는 sparse_softmax_cross_entropy_with_logits 함수가 사용되고 있는데  softmax_cross_entropy_with_logits와의 차이라면
+ # softmax_cross_entropy_with_logits # 함수가 확률분포를를 따른다면 sparse_softmax_cross_entropy_with_logits는 독점적인 확률로
+ # label이 주어진다고 함. (?)
+
   labels = tf.cast(labels, tf.int64)
   cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
       labels=labels, logits=logits, name='cross_entropy_per_example')
@@ -289,6 +312,7 @@ def loss(logits, labels):
   # decay terms (L2 loss).
   return tf.add_n(tf.get_collection('losses'), name='total_loss')
 
+# tensorboard에 표시하기 위해 손실 값에 대한 summary 추가, 손실값들의 이동 평균을 구하여 리턴. 
 
 def _add_loss_summaries(total_loss):
   """Add summaries for losses in CIFAR-10 model.
@@ -302,7 +326,7 @@ def _add_loss_summaries(total_loss):
     loss_averages_op: op for generating moving averages of losses.
   """
   # Compute the moving average of all individual losses and the total loss.
-  loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
+  loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg') #  가장 최근 값에 가중치를 두는 tf.train.ExponentialMovingAverage을 사용.
   losses = tf.get_collection('losses')
   loss_averages_op = loss_averages.apply(losses + [total_loss])
 
@@ -316,7 +340,7 @@ def _add_loss_summaries(total_loss):
 
   return loss_averages_op
 
-
+# 학습을 실행시키는 함수
 def train(total_loss, global_step):
   """Train CIFAR-10 model.
 
@@ -330,12 +354,14 @@ def train(total_loss, global_step):
   Returns:
     train_op: op for training.
   """
-  # Variables that affect learning rate.
+  # Variables that affect learning rate. 
   num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
   decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
   # Decay the learning rate exponentially based on the number of steps.
-  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+  # 학습 step이 증가할 수록 러닝 rate를 기하급수적으로 감소시키도록 처리
+  # train.exponential_decay -> INITIAL_LEARNING_RATE * LEARNING_RATE_DECAY_FACTOR ^ (global_step / decay_steps)
+  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE, 
                                   global_step,
                                   decay_steps,
                                   LEARNING_RATE_DECAY_FACTOR,
@@ -347,8 +373,8 @@ def train(total_loss, global_step):
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
-    opt = tf.train.GradientDescentOptimizer(lr)
-    grads = opt.compute_gradients(total_loss)
+    opt = tf.train.GradientDescentOptimizer(lr) # 경사 하강 Optimizer 설정
+    grads = opt.compute_gradients(total_loss)  # gradients 계산
 
   # Apply gradients.
   apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
@@ -365,11 +391,13 @@ def train(total_loss, global_step):
   # Track the moving averages of all trainable variables.
   variable_averages = tf.train.ExponentialMovingAverage(
       MOVING_AVERAGE_DECAY, global_step)
-  with tf.control_dependencies([apply_gradient_op]):
+  with tf.control_dependencies([apply_gradient_op]): # control_dependencies-> 오퍼레이션간의 의존성을 지정, with와 함께 
+   #사용하면 파라미터로 전달된 오퍼레이션이 먼저 수행된 뒤 다음 문장, 여기서는 with문 아래 있는 # train_op = tf.no_op(name='train')이 실행. 
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
 
   return variables_averages_op
 
+# 데이터 셋이 들어있는 웹사이트로부터 CIFAR-10 데이터 셋을 다운로드 받아 사용할 경로에 압축을 풀어 주는 함수
 
 def maybe_download_and_extract():
   """Download and extract the tarball from Alex's website."""
