@@ -5,7 +5,7 @@
   >> sudo apt install git
   
 (2) github저장소를 clone  (tensorflow 소스와 예제를 다운로드)
-  >> git clone https://github.com/tensorflow
+  >> git clone https://github.com/tensorflow/tensorflow
   
   >> git clone https://github.com/tensorflow/models
   
