@@ -325,7 +325,7 @@ def _add_loss_summaries(total_loss):
 def train(total_loss, global_step):
   """Train CIFAR-10 model.
 
-  Create an optimizer and apply to all trainable variables. Add moving
+  Create an and apply to all trainable variables. Add moving
   average for all trainable variables.
 
   Args:
@@ -352,7 +352,7 @@ def train(total_loss, global_step):
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
-    opt = tf.train.GradientDescentOptimizer(lr)
+    opt = tf.train.AdamOptimizer(lr)
     grads = opt.compute_gradients(total_loss)
 
   # Apply gradients.
