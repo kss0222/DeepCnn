@@ -1,14 +1,14 @@
 # 학습한 모델의 성능 평가 
 def evaluate():
    with tf.Graph().as_default() as g:
-     images, labels = cifar10.inputs(eval_data=eval_data)  # 검증용 CIFAR10 데이터셋 읽기. 10000개
+     images, labels = cifar10_adam.inputs(eval_data=eval_data)  # 검증용 CIFAR10 데이터셋 읽기. 10000개
 
-    logits = cifar10.inference(images)               # 예측 모델 그래프 정의
+    logits = cifar10_adam.inference(images)               # 예측 모델 그래프 정의
     top_k_op = tf.nn.in_top_k(logits, labels, 1)    # 예측
 
     # 체크포인트 파일에서 복구를 위한 moving average 그래프 및 saver 생성
     variable_averages = tf.train.ExponentialMovingAverage(
-         cifar10.MOVING_AVERAGE_DECAY)
+         cifar10_adam.MOVING_AVERAGE_DECAY)
      variables_to_restore = variable_averages.variables_to_restore()
      saver = tf.train.Saver(variables_to_restore)
 
@@ -48,18 +48,18 @@ def evaluate():
   with tf.Graph().as_default() as g:
     # Get images and labels for CIFAR-10.
     eval_data = FLAGS.eval_data == 'test'
-    images, labels = cifar10.inputs(eval_data=eval_data)
+    images, labels = cifar10_adam.inputs(eval_data=eval_data)
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    logits = cifar10_adam.inference(images)
 
     # Calculate predictions.
     top_k_op = tf.nn.in_top_k(logits, labels, 1)
 
     # Restore the moving average version of the learned variables for eval.
     variable_averages = tf.train.ExponentialMovingAverage(
-        cifar10.MOVING_AVERAGE_DECAY)
+        cifar10_adam.MOVING_AVERAGE_DECAY)
     variables_to_restore = variable_averages.variables_to_restore()
     saver = tf.train.Saver(variables_to_restore)
 
@@ -76,7 +76,7 @@ def evaluate():
 
 
 def main(argv=None):  # pylint: disable=unused-argument
-  cifar10.maybe_download_and_extract()
+  cifar10_adam.maybe_download_and_extract()
   if tf.gfile.Exists(FLAGS.eval_dir):
     tf.gfile.DeleteRecursively(FLAGS.eval_dir)
   tf.gfile.MakeDirs(FLAGS.eval_dir)
